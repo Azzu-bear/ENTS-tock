@@ -200,7 +200,7 @@ int lorawan_timesync(void) {
   }
 
   uint32_t unix_epoch = 0;
-  uint8_t ms = 0;
+  uint16_t ms = 0;
   state = node->getMacDeviceTimeAns(&unix_epoch, &ms);
   if (state < 0) {
     ulog_error("No DeviceTimeAns received: %d", state);
