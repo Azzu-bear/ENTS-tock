@@ -4,6 +4,7 @@
 #include <libents/proto/sensor.h>
 #include <libents/storage/fifo.h>
 #include <libents/user_config.h>
+#include <libtock-sync/services/alarm.h>
 #include <libtock/kernel/ipc.h>
 #include <libtock/tock.h>
 #include <stdio.h>
@@ -42,6 +43,9 @@ static int last_pid = 0;
 static bool has_data = false;
 
 static bool network_ready = false;
+
+/** Time between repeated timesync requests. */
+static int timesync_retry_delay_ms = 10000;
 
 /**
  * @brief Callback when receiving data for upload from individual apps.
@@ -145,9 +149,14 @@ int main(void) {
     return ret;
   }
 
-  ret = lorawan_timesync();
-  if (ret < 0) {
-    return ret;
+  while (1) {
+    ret = lorawan_timesync();
+    if (ret < 0) {
+      ulog_info("Retrying in %d ms", timesync_retry_delay_ms);
+      libtocksync_alarm_delay_ms(timesync_retry_delay_ms);
+    } else {
+      break;
+    }
   }
 
   network_ready = true;
