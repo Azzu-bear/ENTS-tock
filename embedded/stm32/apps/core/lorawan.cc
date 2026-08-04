@@ -136,13 +136,17 @@ int lorawan_join(void) {
   if (status < 0) {
     ulog_error("Could not read nonces data from persistant storage.");
   } else {
-    state = node->setBufferNonces(persistant_nonces);
-    if (state < 0) {
-      if (state == RADIOLIB_ERR_NONCES_DISCARDED) {
-        ulog_error("LoRaWAN nonces is invalid.");
-      } else {
-        ulog_error("Could not set LoRaWAN nonces buffer. RadioLib state = %d",
-                   state);
+    if (persistant_nonces[0] == 0x00) {
+      ulog_info("No nonces set");
+    } else {
+      state = node->setBufferNonces(persistant_nonces);
+      if (state < 0) {
+        if (state == RADIOLIB_ERR_NONCES_DISCARDED) {
+          ulog_error("LoRaWAN nonces is invalid.");
+        } else {
+          ulog_error("Could not set LoRaWAN nonces buffer. RadioLib state = %d",
+                     state);
+        }
       }
     }
   }
