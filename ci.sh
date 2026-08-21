@@ -9,14 +9,14 @@ pushd ./embedded > /dev/null
 ./clean.sh
 popd > /dev/null
 
-echo "Prepush libents"
+echo "Checking libents"
 pushd ./embedded/libents > /dev/null
 ./lint.sh
 ./format.sh
 ./build.sh
 popd > /dev/null
 
-echo "Prepush stm32"
+echo "Checking stm32"
 pushd ./embedded/stm32 > /dev/null
 ./lint.sh
 ./format.sh
@@ -24,7 +24,7 @@ pushd ./embedded/stm32 > /dev/null
 ./test_all.sh
 popd > /dev/null
 
-echo "Prepush esp32"
+echo "Checking esp32"
 pushd ./embedded/esp32 > /dev/null
 ./lint.sh
 ./format.sh
@@ -32,17 +32,17 @@ pushd ./embedded/esp32 > /dev/null
 ./test_all.sh
 popd > /dev/null
 
-echo "Prepush proto"
+echo "Checking proto"
 pushd ./proto > /dev/null
 echo "Not implemented check for changes"
 popd > /dev/null
 
-echo "Prepush docs"
+echo "Checking docs"
 pushd ./proto > /dev/null
 echo "Not implemented yet"
 popd > /dev/null
 
-echo "Prepush python"
+echo "Checking python"
 pushd ./python > /dev/null
 ./lint.sh
 ./format.sh
