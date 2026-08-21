@@ -173,9 +173,12 @@ int main(void) {
     ulog_trace("main loop");
 
     ret = libtocksync_alarm_yield_for_with_timeout(&has_data, upload_interval);
-    if (ret < 0) {
-      ulog_warn("Failed to yeild or timeout");
-      continue;
+    if (ret == 0) {
+      ulog_info("Loop triggered with condition");
+    } else if (ret == -1) {
+      ulog_info("Loop triggered with timeout");
+    } else {
+      ulog_warn("Unknown behavior with yield_for_with_timeout (error: %d)", ret);
     }
 
     //
@@ -242,7 +245,7 @@ int main(void) {
 
       ulog_debug("Sending heartbeat");
 
-      ret = lorawan_upload(NULL, 0);
+      ret = lorawan_heartbeat();
       if (ret < 0) {
         stats.failed++;
         ulog_error("Error sending heartbeat (error: %d)");
