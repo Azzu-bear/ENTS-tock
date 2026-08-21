@@ -166,9 +166,6 @@ int main(void) {
 
   network_ready = true;
 
-
-
-
   while (1) {
     ulog_trace("main loop");
 
@@ -178,7 +175,8 @@ int main(void) {
     } else if (ret == -1) {
       ulog_info("Loop triggered with timeout");
     } else {
-      ulog_warn("Unknown behavior with yield_for_with_timeout (error: %d)", ret);
+      ulog_warn("Unknown behavior with yield_for_with_timeout (error: %d)",
+                ret);
     }
 
     //
@@ -212,7 +210,7 @@ int main(void) {
     //
     // Upload data
     //
-    
+
     uint16_t meas_in_buffer = fifo_buffer_len();
 
     if (meas_in_buffer > 1) {
@@ -263,7 +261,7 @@ int main(void) {
           "total uploads: %d\tfailed uploads: %d\tmeasurements: %d\tbytes: "
           "%d\t",
           stats.total, stats.failed, stats.meas, stats.bytes);
-    }  
+    }
   }
 }
 
