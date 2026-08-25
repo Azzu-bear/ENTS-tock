@@ -11,6 +11,7 @@ from datetime import UTC, datetime, timedelta
 
 from ents.dirtviz.uptime import (
     Availability,
+    cell_availability,
     availability_from_timestamps,
     find_gaps,
     infer_interval,
@@ -246,6 +247,105 @@ class TestMinimumGap(unittest.TestCase):
             stamps, 60.0, START, START + timedelta(minutes=4), min_gap_s=300.0
         )
         self.assertEqual(gaps, [])
+
+
+class FakeFrame(list):
+    """Minimal stand-in for the DataFrame the client returns."""
+
+    def __init__(self, stamps):
+        super().__init__(range(len(stamps)))
+        self._stamps = stamps
+
+    def __contains__(self, key):
+        return key == "timestamp"
+
+    def __getitem__(self, key):
+        if key == "timestamp":
+            return [FakeTimestamp(t) for t in self._stamps]
+        return super().__getitem__(key)
+
+
+class FakeTimestamp:
+    def __init__(self, dt):
+        self._dt = dt
+
+    def to_pydatetime(self):
+        return self._dt
+
+
+class FakeCell:
+    id = 1483
+    name = "Field Cell 3"
+
+
+class FakeClient:
+    """Records which route was asked for, and serves only one of them."""
+
+    def __init__(self, sensor_stamps=None, power_stamps=None):
+        self.sensor_stamps = sensor_stamps or []
+        self.power_stamps = power_stamps or []
+        self.calls = []
+
+    def sensor_data(self, cell, name, meas, start, end, resample="none"):
+        self.calls.append(("sensor", name, meas))
+        return FakeFrame(self.sensor_stamps)
+
+    def power_data(self, cell, start, end, resample=None):
+        self.calls.append(("power",))
+        return FakeFrame(self.power_stamps)
+
+    def teros_data(self, cell, start, end, resample=None):
+        self.calls.append(("teros",))
+        return FakeFrame([])
+
+
+class TestSourceSelection(unittest.TestCase):
+    """The fleet is split across two ingest paths, so neither alone covers it.
+
+    A node on fPort 2 lands in the generic sensor table and is invisible to
+    /power/; older nodes are the reverse. Picking the wrong one reports a
+    healthy node as having no data at all.
+    """
+
+    def setUp(self):
+        self.cell = FakeCell()
+        self.end = START + timedelta(hours=24)
+
+    def test_auto_prefers_the_generic_table(self):
+        client = FakeClient(sensor_stamps=series(START, 25))
+        report = cell_availability(client, self.cell, START, self.end)
+        self.assertEqual(report.n_points, 25)
+        self.assertEqual(client.calls[0][0], "sensor")
+        self.assertEqual(len(client.calls), 1, "should not have fallen back")
+
+    def test_auto_falls_back_to_power(self):
+        client = FakeClient(sensor_stamps=[], power_stamps=series(START, 25))
+        report = cell_availability(client, self.cell, START, self.end)
+        self.assertEqual(report.n_points, 25)
+        self.assertEqual([c[0] for c in client.calls], ["sensor", "power"])
+
+    def test_auto_reports_nothing_when_neither_has_data(self):
+        client = FakeClient()
+        report = cell_availability(client, self.cell, START, self.end)
+        self.assertEqual(report.n_points, 0)
+        self.assertEqual(report.availability, 0.0)
+
+    def test_generic_query_uses_the_enum_naming_scheme(self):
+        """("power", "v") silently returns empty; the real spelling is this."""
+        client = FakeClient(sensor_stamps=series(START, 3))
+        cell_availability(client, self.cell, START, self.end)
+        self.assertEqual(client.calls[0], ("sensor", "POWER_VOLTAGE", "Voltage"))
+
+    def test_explicit_source_does_not_fall_back(self):
+        client = FakeClient(power_stamps=series(START, 25))
+        report = cell_availability(client, self.cell, START, self.end, source="sensor")
+        self.assertEqual(report.n_points, 0)
+        self.assertEqual([c[0] for c in client.calls], ["sensor"])
+
+    def test_unknown_source_rejected(self):
+        client = FakeClient()
+        with self.assertRaises(ValueError):
+            cell_availability(client, self.cell, START, self.end, source="nope")
 
 
 if __name__ == "__main__":
