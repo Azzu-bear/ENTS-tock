@@ -109,7 +109,8 @@ void set_epoch(uint32_t e) { g_epoch = e; }
 /* Stubbed alarm                                                              */
 /* -------------------------------------------------------------------------- */
 
-/** Measured on the bench stm32wle5jc. Not the 32768 the design first assumed. */
+/** Measured on the bench stm32wle5jc. Not the 32768 the design first assumed.
+ */
 #define TICK_HZ 16000u
 
 static uint32_t g_freq = TICK_HZ;
@@ -396,7 +397,8 @@ static void test_ping_pong(void) {
   check_u32(raw_u32(REC_A, OFF_BOOT_COUNT), 3, "the newer slot has boot 3");
 }
 
-/** A slot that fails its CRC must be ignored in favour of the older good one. */
+/** A slot that fails its CRC must be ignored in favour of the older good one.
+ */
 static void test_crc_rejects_corruption(void) {
   group("CRC rejects a corrupt slot");
   fram_blank();
