@@ -62,6 +62,17 @@ DEFAULT_TOLERANCE = 2.5
 #: deployment anyway, and nothing shorter can be distinguished from ingest lag.
 MIN_GAP_S = 300.0
 
+#: What to ask the generic sensor table for as proof of life. Every node
+#: reports its own supply voltage, so this is the one series that exists
+#: everywhere. Note the spelling: dirtviz files generic measurements under the
+#: SensorType enum name plus the human readable measurement name from
+#: SENSOR_DATA, so it is ("POWER_VOLTAGE", "Voltage") and not ("power", "v").
+#: The endpoint returns an identical empty series for a name that does not
+#: exist and one that merely has no data, so a typo here looks exactly like a
+#: dead node. /cell/<id>/sensors lists what a given cell actually has.
+DEFAULT_SENSOR_NAME = "POWER_VOLTAGE"
+DEFAULT_SENSOR_MEAS = "Voltage"
+
 
 @dataclass(frozen=True)
 class Gap:
@@ -164,6 +175,13 @@ def _duration(seconds: float | None) -> str:
         return f"{hours}h {m}m" if m else f"{hours}h"
     days, h = divmod(hours, 24)
     return f"{days}d {h}h" if h else f"{days}d"
+
+
+def _timestamps(data) -> list[datetime]:
+    """Pull the timestamp column out of a client DataFrame, if it has one."""
+    if data is None or not len(data) or "timestamp" not in data:
+        return []
+    return [ts.to_pydatetime() for ts in data["timestamp"]]
 
 
 def _as_utc(dt: datetime) -> datetime:
@@ -323,10 +341,12 @@ def cell_availability(
     cell,
     start: datetime,
     end: datetime,
-    source: str = "power",
+    source: str = "auto",
     tolerance: float = DEFAULT_TOLERANCE,
     resample: str | None = "none",
     min_gap_s: float = MIN_GAP_S,
+    sensor_name: str = DEFAULT_SENSOR_NAME,
+    sensor_meas: str = DEFAULT_SENSOR_MEAS,
 ) -> Availability:
     """Availability for one cell, pulled from dirtviz.
 
@@ -335,8 +355,16 @@ def cell_availability(
         cell: A :class:`~ents.dirtviz.client.Cell`.
         start: Start of the window.
         end: End of the window.
-        source: Which series to use as proof of life, "power" or "teros".
-            Power is the default because every node has it.
+        source: Which series to use as proof of life.
+
+            - "auto" (default) tries the generic sensor table first and falls
+              back to the dedicated power route. The fleet is mid migration
+              between the two ingest paths, so neither alone covers it: nodes
+              on fPort 2 land in the generic tables and are invisible to
+              /power/, while older nodes are the reverse.
+            - "sensor" forces the generic table, see sensor_name and
+              sensor_meas.
+            - "power" and "teros" force the dedicated routes.
         tolerance: Multiple of the interval that counts as an outage.
         resample: Passed to the client. Defaults to "none", meaning raw
             measurements. This matters more than it looks: the API's default
@@ -346,22 +374,39 @@ def cell_availability(
             measured in August 2026 the raw interval was 5 minutes, a factor
             of twelve better in resolution.
         min_gap_s: Floor on what counts as an outage. See MIN_GAP_S.
+        sensor_name: Sensor name for the generic table. This is the SensorType
+            enum name, not a friendly label.
+        sensor_meas: Measurement name for the generic table, which is the
+            human readable name from SENSOR_DATA rather than a short code.
 
     Returns:
         An Availability report.
     """
-    if source == "power":
-        data = client.power_data(cell, start, end, resample=resample)
+
+    def _sensor():
+        return client.sensor_data(
+            cell, sensor_name, sensor_meas, start, end, resample=resample or "none"
+        )
+
+    def _power():
+        return client.power_data(cell, start, end, resample=resample)
+
+    if source == "auto":
+        data = _sensor()
+        if not _timestamps(data):
+            data = _power()
+    elif source == "sensor":
+        data = _sensor()
+    elif source == "power":
+        data = _power()
     elif source == "teros":
         data = client.teros_data(cell, start, end, resample=resample)
     else:
-        raise ValueError(f"unknown source {source!r}, expected power or teros")
+        raise ValueError(
+            f"unknown source {source!r}, expected auto, sensor, power or teros"
+        )
 
-    timestamps = (
-        [ts.to_pydatetime() for ts in data["timestamp"]]
-        if len(data) and "timestamp" in data
-        else []
-    )
+    timestamps = _timestamps(data)
 
     return availability_from_timestamps(
         timestamps,
@@ -396,9 +441,23 @@ def _main(argv=None) -> int:
     )
     parser.add_argument(
         "--source",
-        default="power",
-        choices=["power", "teros"],
-        help="which series to use as proof of life",
+        default="auto",
+        choices=["auto", "sensor", "power", "teros"],
+        help="which series to use as proof of life. auto (default) tries the "
+        "generic sensor table then falls back to /power/, since the fleet is "
+        "split across both ingest paths",
+    )
+    parser.add_argument(
+        "--sensor-name",
+        default=DEFAULT_SENSOR_NAME,
+        help=f"sensor name in the generic table, the SensorType enum name "
+        f"(default {DEFAULT_SENSOR_NAME})",
+    )
+    parser.add_argument(
+        "--sensor-measurement",
+        default=DEFAULT_SENSOR_MEAS,
+        dest="sensor_meas",
+        help=f"measurement name in the generic table (default {DEFAULT_SENSOR_MEAS})",
     )
     parser.add_argument(
         "--tolerance",
@@ -447,6 +506,8 @@ def _main(argv=None) -> int:
                 args.tolerance,
                 args.resample,
                 args.min_gap_s,
+                args.sensor_name,
+                args.sensor_meas,
             )
         except Exception as exc:  # noqa: BLE001
             print(f"cell {cell.id} ({cell.name}): request failed, {exc}")
