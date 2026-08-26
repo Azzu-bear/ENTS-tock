@@ -24,7 +24,7 @@ typedef struct {
   /** Total number of measurements */
   int meas;
   /** Number of heartbeats */
-  int heartbeat;
+  int heartbeats;
 } upload_stats;
 
 upload_stats stats = {};
@@ -248,7 +248,7 @@ int main(void) {
         stats.failed++;
         ulog_error("Error sending heartbeat (error: %d)");
       } else {
-        stats.heartbeat++;
+        stats.heartbeats++;
         ulog_debug("Heartbeat sent");
       }
     }
@@ -258,9 +258,9 @@ int main(void) {
     //
     if (!(stats.total % 6)) {
       ulog_info(
-          "total uploads: %d\tfailed uploads: %d\tmeasurements: %d\tbytes: "
-          "%d\t",
-          stats.total, stats.failed, stats.meas, stats.bytes);
+          "total uploads: %d  failed uploads: %d  measurements: %d  bytes: "
+          "%d  heartbeats: %d",
+          stats.total, stats.failed, stats.meas, stats.bytes, stats.heartbeats);
     }
   }
 }
