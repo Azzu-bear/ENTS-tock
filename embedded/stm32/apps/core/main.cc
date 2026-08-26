@@ -52,6 +52,9 @@ static int timesync_retry_delay_ms = 10000;
 /** Time between upload intervals. */
 static int upload_interval = 60000;
 
+/** Time before user config webserver is turned off */
+static const int userconfig_timeout_ms = 300 * 1000;
+
 /**
  * @brief Callback when receiving data for upload from individual apps.
  *
@@ -125,19 +128,12 @@ int main(void) {
   // Initialize controller interface
   ControllerInit();
 
-  // UserConfigStatus uc_status = UserConfigLoad();
-  //// start user config interface
-  // if (uc_status == USERCONFIG_OK) {
-  //   // print current user config
-  //   ulog_info("Current user configuration:");
-  //   ulog_info("---------------------------");
-  //   UserConfigPrint();
-  // } else {
-  //   ulog_error("Could not load user config.");
-  // }
+  // Get update configuration from server
+  UserConfigUpdateFromServer();
 
-  // Load user config and start webservice with timeotu
-  UserConfigStart(120 * 1000);
+  // Reset esp32 and start webserver
+  ControllerDeviceReset();
+  UserConfigStart(userconfig_timeout_ms);
 
   // return codes
   int ret = 0;
