@@ -5,6 +5,8 @@ TOCK_USERLAND_BASE_DIR = ../../../libtock-c
 
 PACKAGE_NAME = org.ents.examples.microsd_log
 
+STACK_SIZE=4096
+
 EMBED_DIR = $(TOCK_USERLAND_BASE_DIR)/..
 EXT_DIR = $(EMBED_DIR)/external
 
