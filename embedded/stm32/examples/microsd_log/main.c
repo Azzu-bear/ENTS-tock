@@ -42,7 +42,7 @@ static void microsd_log_output(ulog_event* ev, void* arg) {
   // re-entry.
   static char line[LOG_LINE_SIZE];
   if (ulog_event_to_cstr(ev, line, sizeof(line)) == ULOG_STATUS_OK) {
-    ControllerMicroSDLog(line);
+    ControllerMicroSDLog(line, "example_log");
   }
 
   busy = false;

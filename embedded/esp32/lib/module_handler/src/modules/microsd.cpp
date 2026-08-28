@@ -431,9 +431,8 @@ void ModuleMicroSD::WriteLog(const Esp32Command& cmd) {
 
   Log.traceln("ModuleMicroSD::WriteLog");
 
-  // Fixed filename so that logging does not depend on a USERCONFIG command
-  // having been sent first to open dataFileFilename.
-  static const char logFileFilename[] = "/stm32.log";
+  // Base filename for log
+  const char* base = cmd.command.microsd_command.filename;
 
   if (!microsd_detect_card()) {
     Log.error("Aborting log to micro SD card.\r\n");
@@ -450,16 +449,41 @@ void ModuleMicroSD::WriteLog(const Esp32Command& cmd) {
       Log.verbose("microsd_command.log: %s\r\n",
                   cmd.command.microsd_command.data.log);
 
+      // boot index
+      int start_idx = 0;
+      char logFileFilename[32] = {};
+
+      // find non-existant bootnumber
+      while (1) {
+        snprintf(logFileFilename, sizeof(logFileFilename), "/%s.%d.txt", base,
+                 start_idx);
+
+        // check if sd card exsits
+        if (!SD.exists(logFileFilename)) {
+          break;
+        } else {
+          Log.verbose("File name \"%s\" already exsits! Trying next index.");
+        }
+
+        // try next index
+        start_idx++;
+      }
+
+      // Open file, preventing overwrites
       File logFile = SD.open(logFileFilename, FILE_APPEND);
+
       if (!logFile) {
         Log.error("Failed to open '%s' with '%s'\r\n", logFileFilename,
                   FILE_APPEND);
+
         microsd_cmd.rc = MicroSDCommand_ReturnCode_ERROR_FILE_NOT_OPENED;
         strncpy(microsd_cmd.filename, logFileFilename,
                 sizeof(microsd_cmd.filename));
       } else {
-        logFile.printf("%s\r\n", cmd.command.microsd_command.data.log);
+        // save and close file
+        logFile.println(cmd.command.microsd_command.data.log);
         logFile.close();
+
         Log.trace("Wrote to and closed '%s'\r\n", logFileFilename);
       }
     }

@@ -64,11 +64,12 @@ uint32_t ControllerMicroSDUserConfig(UserConfiguration* uc,
  * Intended to back a microlog output handler, see ulog_output_add().
  *
  * @param msg Null terminated string. Truncated to fit MicroSDCommand.log.
+ * @param base Base filename that boot index and extension get appended.
  *
  * @return MicroSDCommand_ReturnCode from the esp32. Returns
  * MicroSDCommand_ReturnCode_ERROR_GENERAL if the i2c transaction failed.
  */
-uint32_t ControllerMicroSDLog(const char* msg);
+uint32_t ControllerMicroSDLog(const char* msg, const char* base);
 
 /**
  * @}

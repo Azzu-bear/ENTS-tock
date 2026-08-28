@@ -152,7 +152,7 @@ uint32_t ControllerMicroSDUserConfig(UserConfiguration* uc,
   return cmd.command.microsd_command.rc;
 }
 
-uint32_t ControllerMicroSDLog(const char* msg) {
+uint32_t ControllerMicroSDLog(const char* msg, const char* base) {
   // get reference to tx and rx buffers
   Buffer* tx = ControllerTx();
   Buffer* rx = ControllerRx();
@@ -161,9 +161,14 @@ uint32_t ControllerMicroSDLog(const char* msg) {
   microsd_cmd.type = MicroSDCommand_Type_LOG;
 
   microsd_cmd.which_data = MicroSDCommand_log_tag;
+
   // truncate rather than overflow, the field is a fixed size array
   strncpy(microsd_cmd.data.log, msg, sizeof(microsd_cmd.data.log) - 1);
   microsd_cmd.data.log[sizeof(microsd_cmd.data.log) - 1] = '\0';
+
+  // filename
+  strncpy(microsd_cmd.filename, base, sizeof(microsd_cmd.filename) - 1);
+  microsd_cmd.filename[sizeof(microsd_cmd.filename) - 1] = '\0';
 
   // encode command
   tx->len = EncodeMicroSDCommand(&microsd_cmd, tx->data, tx->size);
