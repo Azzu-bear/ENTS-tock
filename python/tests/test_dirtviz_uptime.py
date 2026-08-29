@@ -11,8 +11,8 @@ from datetime import UTC, datetime, timedelta
 
 from ents.dirtviz.uptime import (
     Availability,
-    cell_availability,
     availability_from_timestamps,
+    cell_availability,
     find_gaps,
     infer_interval,
 )
@@ -154,7 +154,7 @@ class TestAvailability(unittest.TestCase):
         self.assertLess(configured.availability, 0.1)
 
     def test_naive_datetimes_are_treated_as_utc(self):
-        naive_start = datetime(2026, 8, 1, 0, 0)
+        naive_start = datetime(2026, 8, 1, 0, 0)  # noqa: DTZ001 - the point
         stamps = [naive_start + timedelta(hours=i) for i in range(25)]
         report = availability_from_timestamps(
             stamps, naive_start, naive_start + timedelta(hours=24)

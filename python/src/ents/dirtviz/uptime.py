@@ -37,6 +37,7 @@ Or from the command line, over every cell that reported recently::
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from itertools import pairwise
 from statistics import median
 
 __all__ = [
@@ -144,10 +145,14 @@ class Availability:
 
         interval = _duration(self.interval_s) if self.interval_s else "unknown"
         lines = [
-            f"{name}: {self.availability * 100:.2f}% available "
-            f"(lower bound), {self.n_points} uploads, interval ~{interval}",
-            f"  last seen {self.last_seen:%Y-%m-%d %H:%M} UTC, "
-            f"{'reporting' if self.reporting_now else 'SILENT'}",
+            (
+                f"{name}: {self.availability * 100:.2f}% available "
+                f"(lower bound), {self.n_points} uploads, interval ~{interval}"
+            ),
+            (
+                f"  last seen {self.last_seen:%Y-%m-%d %H:%M} UTC, "
+                f"{'reporting' if self.reporting_now else 'SILENT'}"
+            ),
         ]
         if self.gaps:
             lines.append(
@@ -164,7 +169,7 @@ def _duration(seconds: float | None) -> str:
     """Render a duration the way someone reads it out in a meeting."""
     if seconds is None:
         return "unknown"
-    seconds = int(round(seconds))
+    seconds = round(seconds)
     if seconds < 60:
         return f"{seconds}s"
     minutes, s = divmod(seconds, 60)
@@ -210,7 +215,7 @@ def infer_interval(timestamps: list[datetime]) -> float | None:
     ordered = sorted(_as_utc(t) for t in timestamps)
     deltas = [
         (b - a).total_seconds()
-        for a, b in zip(ordered, ordered[1:])
+        for a, b in pairwise(ordered)
         if (b - a).total_seconds() > 0
     ]
     if not deltas:
@@ -258,7 +263,7 @@ def find_gaps(
     if (ordered[0] - window_start).total_seconds() > threshold:
         gaps.append(Gap(window_start, ordered[0], truncated=True))
 
-    for a, b in zip(ordered, ordered[1:]):
+    for a, b in pairwise(ordered):
         if (b - a).total_seconds() > threshold:
             gaps.append(Gap(a, b))
 
