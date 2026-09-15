@@ -1,0 +1,9 @@
+/**
+ * @defgroup stm32 stm32
+ *
+ * The stm32 side of a node: the Tock applications and the libents library
+ * they are built against.
+ *
+ * Referenced by @ref controller, @ref userConfig, @ref util and the sensor
+ * drivers, none of which had a parent group to hang off before this existed.
+ */

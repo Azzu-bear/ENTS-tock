@@ -1,0 +1,135 @@
+# Doxygen configuration for the ENTS-tock embedded sources.
+#
+# Run from this directory:
+#
+#     ./build.sh
+#
+# or directly with `doxygen Doxyfile`. Output lands in build/html.
+#
+# Only settings that differ from the Doxygen defaults are listed. Everything
+# else is left alone deliberately, so this file stays readable and a Doxygen
+# upgrade does not silently carry hundreds of stale options forward. Run
+# `doxygen -x Doxyfile` to see the full resolved configuration.
+
+#---------------------------------------------------------------------------
+# Project
+#---------------------------------------------------------------------------
+
+PROJECT_NAME           = "ENTS-tock"
+PROJECT_BRIEF          = "Environmental NeTworked Sensor firmware on Tock OS"
+OUTPUT_DIRECTORY       = build
+
+# Strip the repo root from displayed paths, so headers read as
+# libents/util/uptime.h rather than ../../embedded/libents/src/libents/...
+FULL_PATH_NAMES        = YES
+STRIP_FROM_PATH        = ../..
+STRIP_FROM_INC_PATH    = ../libents/src ../esp32/lib
+
+#---------------------------------------------------------------------------
+# What to document
+#---------------------------------------------------------------------------
+
+# The codebase is mostly C, with C++ only on the esp32 side.
+OPTIMIZE_OUTPUT_FOR_C  = YES
+
+# NO on purpose. The headers here are deliberately documented and the .c files
+# are not, so extracting everything would bury the curated API reference under
+# hundreds of undocumented statics. Turn this on temporarily if you are hunting
+# for something that is not showing up.
+EXTRACT_ALL            = NO
+EXTRACT_STATIC         = NO
+
+# Undocumented code is expected here, see above, so do not shout about it.
+# Undocumented *parameters* on a function that is otherwise documented are a
+# real mistake and stay enabled.
+WARN_IF_UNDOCUMENTED   = NO
+WARN_IF_DOC_ERROR      = YES
+WARN_NO_PARAMDOC       = YES
+WARN_LOGFILE           = build/doxygen-warnings.log
+
+#---------------------------------------------------------------------------
+# Input
+#---------------------------------------------------------------------------
+
+INPUT                  = ../../README.md \
+                         ../../docs \
+                         ../README.md \
+                         ../libents \
+                         ../esp32/lib \
+                         ../esp32/src \
+                         ../esp32/README.md \
+                         ../stm32/stm32.dox \
+                         ../stm32/apps \
+                         ../stm32/examples \
+                         ../stm32/README.md \
+                         ../../proto/README.md \
+                         README.md
+
+FILE_PATTERNS          = *.c *.cc *.cpp *.h *.hpp *.dox *.md
+RECURSIVE              = YES
+
+# Vendored and generated code. None of it is ours to document, and the nanopb
+# output in particular is thousands of lines of generated structs that would
+# swamp everything else.
+EXCLUDE_PATTERNS       = */build/* \
+                         */.history/* \
+                         */libtock-c/* \
+                         */external/* \
+                         */nanopb/* \
+                         */unity/* \
+                         *.pb.c \
+                         *.pb.h \
+                         */test/uptime/stubs/*
+
+# The root README becomes the landing page rather than a page off to the side.
+USE_MDFILE_AS_MAINPAGE = ../../README.md
+MARKDOWN_SUPPORT       = YES
+
+# Doxygen 1.15 and later default this to YES, which quietly demotes every
+# README.md to being the documentation *of its directory* instead of a page of
+# its own. The effect is that the READMEs disappear from the Pages tab and any
+# @subpage referring to one fails to resolve. Since collecting the READMEs into
+# a browsable set is the point of this build, turn it off.
+IMPLICIT_DIR_DOCS      = NO
+
+#---------------------------------------------------------------------------
+# Output
+#---------------------------------------------------------------------------
+
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+GENERATE_TREEVIEW      = YES
+DISABLE_INDEX          = NO
+FULL_SIDEBAR           = NO
+HTML_COLORSTYLE        = TOGGLE
+SEARCHENGINE           = YES
+
+# Nobody wants the PDF, and it more than doubles the build time.
+GENERATE_LATEX         = NO
+
+# Source browsing is genuinely useful on a firmware project: being able to
+# click from ents_uptime_tick() into its implementation saves a grep.
+SOURCE_BROWSER         = YES
+REFERENCED_BY_RELATION = YES
+REFERENCES_RELATION    = YES
+
+#---------------------------------------------------------------------------
+# Diagrams
+#---------------------------------------------------------------------------
+
+# Graphviz is not assumed to be installed. Set HAVE_DOT=YES if you have `dot`
+# on PATH and want call graphs; the build gets noticeably slower.
+HAVE_DOT               = NO
+CLASS_DIAGRAMS         = YES
+
+#---------------------------------------------------------------------------
+# Preprocessing
+#---------------------------------------------------------------------------
+
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+
+# Keeps the C++ headers on the esp32 side readable when they are guarded.
+PREDEFINED             = __cplusplus \
+                         DOXYGEN_SHOULD_SKIP_THIS
