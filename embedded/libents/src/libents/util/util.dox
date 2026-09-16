@@ -2,6 +2,5 @@
  * @ingroup stm32
  * @defgroup util Utilities
  *
- * Small shared helpers that are not tied to one peripheral: wall clock time
- * and the per node uptime record.
+ * Small shared helpers that are not tied to any one peripheral.
  */
