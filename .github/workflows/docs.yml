@@ -40,14 +40,20 @@ jobs:
         working-directory: ./python
         run: pip install -e .[docs]
 
-      # Not CI=true. The doxygen build currently surfaces around 55 real
+      # Not strict. The doxygen build currently surfaces around 55 real
       # mistakes in existing comments (@param naming arguments that no longer
       # exist, @retrun typos, @ref pointing at pages nobody wrote). Failing the
       # site build on those would mean no published docs at all until they are
       # cleaned up, which is the wrong trade. The warning log is uploaded below
       # so the count is visible and can be driven down.
+      #
+      # CI has to be overridden explicitly: GitHub Actions sets CI=true in every
+      # job by default, and build.sh treats that as "fail on any warning".
+      # Leaving it unset here is not enough.
       - name: Build embedded docs
         working-directory: ./embedded/doxygen
+        env:
+          CI: "false"
         run: ./build.sh
 
       # Sphinx does pass cleanly, so hold it to that.
