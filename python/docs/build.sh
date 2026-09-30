@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
+
 # Build the ents package documentation.
 #
 #   ./build.sh          generate into build/html
 #   ./build.sh --open   generate, then open it
 #
 # Set CI=true to turn Sphinx warnings into errors.
+
 set -e
 set -u
 set -o pipefail

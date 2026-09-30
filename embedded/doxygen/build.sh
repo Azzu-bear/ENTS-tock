@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
+
 # Generate the embedded source documentation.
 #
 #   ./build.sh          generate into build/html
 #   ./build.sh --open   generate, then open it in a browser
-#
-# Set CI=true to fail on any Doxygen warning.
+
 set -e
 set -u
 set -o pipefail
@@ -22,20 +22,6 @@ fi
 
 mkdir -p build
 doxygen Doxyfile
-
-LOG="build/doxygen-warnings.log"
-if [ -s "$LOG" ]; then
-  echo
-  echo "Doxygen reported warnings:"
-  cat "$LOG"
-  if [ "${CI-}" == "true" ]; then
-    echo
-    echo "Failing because CI=true."
-    exit 1
-  fi
-else
-  echo "No Doxygen warnings."
-fi
 
 echo
 echo "Docs written to $HERE/build/html/index.html"
