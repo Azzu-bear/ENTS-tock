@@ -40,50 +40,12 @@ jobs:
         working-directory: ./python
         run: pip install -e .[docs]
 
-      # Not strict. The doxygen build currently surfaces around 55 real
-      # mistakes in existing comments (@param naming arguments that no longer
-      # exist, @retrun typos, @ref pointing at pages nobody wrote). Failing the
-      # site build on those would mean no published docs at all until they are
-      # cleaned up, which is the wrong trade. The warning log is uploaded below
-      # so the count is visible and can be driven down.
-      #
-      # CI has to be overridden explicitly: GitHub Actions sets CI=true in every
-      # job by default, and build.sh treats that as "fail on any warning".
-      # Leaving it unset here is not enough.
-      - name: Build embedded docs
-        working-directory: ./embedded/doxygen
-        env:
-          CI: "false"
-        run: ./build.sh
-
-      # Sphinx does pass cleanly, so hold it to that.
-      - name: Build python docs
-        working-directory: ./python/docs
-        env:
-          CI: "true"
-        run: ./build.sh
-
       - name: Assemble the site
-        run: |
-          mkdir -p site
-          cp docs/index.html site/
-          mkdir -p site/embedded site/python
-          cp -r embedded/doxygen/build/html/. site/embedded/
-          cp -r python/docs/build/html/. site/python/
-          # Pages runs the output through Jekyll otherwise, which drops any
-          # file or directory beginning with an underscore. Sphinx emits
-          # _static and _sources.
-          touch site/.nojekyll
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: doxygen-warnings
-          path: embedded/doxygen/build/doxygen-warnings.log
-          if-no-files-found: ignore
+        run: ./docs.sh
 
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: site
+          path: docs/build
 
   # Publishing only happens for main. A pull request still builds, so a change
   # that breaks the docs is caught before it merges, but does not deploy.
